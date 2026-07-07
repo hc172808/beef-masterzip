@@ -1,0 +1,15 @@
+{
+  "name": "beef-miner-proxy",
+  "version": "1.0.0",
+  "description": "Stratum-WebSocket proxy for BeEF browser miner → unmineable.com",
+  "main": "proxy.js",
+  "scripts": {
+    "start": "node proxy.js"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

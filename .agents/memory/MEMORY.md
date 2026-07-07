@@ -1,0 +1,2 @@
+- [BeEF AR migration versioning](beef-ar-migrations.md) — never reuse an existing version number; scan `core/main/ar-migrations/` before adding a new one.
+- [BeEF hookpages extension](beef-hookpages.md) — hook page generator with SQLite persistence, browser miner, REST API, and deployment script.

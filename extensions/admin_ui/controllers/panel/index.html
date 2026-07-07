@@ -1,0 +1,58 @@
+<!--
+    Copyright (c) 2006-2023 Wade Alcorn - wade@bindshell.net
+    Browser Exploitation Framework (BeEF) - http://beefproject.com
+    See the file 'doc/COPYING' for copying permission
+-->
+<html>
+<head>
+
+	<title>BeEF Control Panel</title>
+
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+
+	<%= script_tag 'ext-base.js' %>
+	<%= script_tag 'ext-all.js' %>
+	<%= script_tag_min 'web_ui_all.js' %>
+	<%= script_tag 'vis.js/vis.min.js' %>
+	<%= stylesheet_tag 'ext-all.css' %>
+	<%= stylesheet_tag 'base.css' %>
+
+	<style>
+	  /* ── Header quick-access buttons ── */
+	  .beef-hdr-btn {
+	    display: inline-flex; align-items: center; gap: 5px;
+	    padding: 3px 12px; border-radius: 5px; font-size: 12px;
+	    font-family: Arial, sans-serif; font-weight: 600;
+	    cursor: pointer; text-decoration: none; border: none;
+	    transition: opacity .15s; margin-left: 8px; vertical-align: middle;
+	  }
+	  .beef-hdr-btn:hover { opacity: .82; }
+	  .btn-hookpages { background: #f87171; color: #fff; }
+	  .btn-miner     { background: #f59e0b; color: #1a1a2e; }
+	</style>
+</head>
+
+<body>
+	<%= nonce_tag %>
+	<div id="header">
+		<div class="left-menu" id="header-right">
+		</div>
+		<div class="right-menu">
+			<img src="<%= base_path %>/media/images/favicon.png" />
+			BeEF <%= BeEF::Core::Configuration.instance.get('beef.version') %> |
+			<a class="beef-hdr-btn btn-hookpages" href="#" onclick="activateTab('hookpages-tab');return false;">🎣 Hook Pages</a>
+			<a class="beef-hdr-btn btn-miner"     href="#" onclick="activateTab('miner-tab');return false;">⛏ SOL Miner</a>
+			&nbsp;|&nbsp;
+			<a id='do-logout-menu' href='#'>Logout</a>
+		</div>
+	</div>
+	<script>
+	  function activateTab(id) {
+	    if (typeof mainPanel !== 'undefined') {
+	      mainPanel.activate(mainPanel.getComponent(id));
+	    }
+	  }
+	</script>
+</body>
+
+</html>

