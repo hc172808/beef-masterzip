@@ -1,4 +1,4 @@
-modules = ["ruby-3.2"]
+modules = ["nodejs-20", "ruby-3.2", "web"]
 [nix]
 channel = "stable-25_05"
 
