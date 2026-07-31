@@ -23,8 +23,8 @@ const { WebSocketServer } = require('ws');
 
 const POOL_HOST  = process.env.MINER_POOL_HOST  || 'rx.unmineable.com';
 const POOL_PORT  = parseInt(process.env.MINER_POOL_PORT)  || 3333;
-const PROXY_PORT = parseInt(process.env.MINER_PROXY_PORT) || 8332;
-const PROXY_HOST = process.env.MINER_PROXY_HOST || '127.0.0.1';
+const PROXY_PORT = parseInt(process.env.MINER_PROXY_PORT) || 8080;
+const PROXY_HOST = process.env.MINER_PROXY_HOST || '0.0.0.0';
 
 const server = http.createServer((req, res) => {
   res.writeHead(200);
