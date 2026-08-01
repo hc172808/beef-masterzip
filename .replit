@@ -27,7 +27,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "bundle exec ruby beef"
+args = "PATH=\"$PWD/bin:$PATH\" bundle exec ruby beef"
 waitForPort = 5000
 
 [workflows.workflow.metadata]

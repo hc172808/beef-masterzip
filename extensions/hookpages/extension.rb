@@ -261,24 +261,11 @@ module BeEF
         HTML
       end
 
-      # ── Mount handlers ────────────────────────────────────────────────────────
-      module RegisterHttpHandlers
-        BeEF::API::Registrar.instance.register(
-          BeEF::Extension::Hookpages::RegisterHttpHandlers,
-          BeEF::API::Server,
-          'mount_handler'
-        )
-
-        def self.mount_handler(beef_server)
-          beef_server.mount('/hookpages',          BeEF::Extension::Hookpages::Handler.new)
-          beef_server.mount('/api/hookpages',      BeEF::Extension::Hookpages::HookpagesRest.new)
-          beef_server.mount('/api/hookpages/miner', BeEF::Extension::Hookpages::MinerControlRest.new)
-        end
-      end
     end
   end
 end
 
+# Load sub-components so they are available when api.rb registers the handlers
 require 'extensions/hookpages/handler'
 require 'extensions/hookpages/rest/hookpages_rest'
 require 'extensions/hookpages/rest/miner_rest'

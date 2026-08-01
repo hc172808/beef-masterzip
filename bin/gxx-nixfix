@@ -1,0 +1,34 @@
+#!/bin/bash
+# NixOS GCC14 include_next fix for C++ native Ruby gems.
+# The NIX_CFLAGS_COMPILE wrapper adds glibc via -isystem (before C++ headers),
+# so include_next <stdlib.h> can't find it. For compile-only steps (-c flag),
+# we use the raw g++ binary with -I glibc instead.
+GLIBC="/nix/store/41pf3md9zgpda9kwh6rzn5kaddf7i0lp-glibc-2.40-66-dev/include"
+RAW_GXX="/nix/store/6i862vz60awrlsila8vw18rg4d4l66iy-gcc-14.2.1.20250322/bin/g++"
+NIX_WRAP="/nix/store/a0d7m3zn9p2dfa1h7ag9h2wzzr2w25sn-gcc-wrapper-14.2.1.20250322/bin/g++"
+
+compile_only=false
+for arg in "$@"; do
+  [[ "$arg" == "-c" ]] && compile_only=true
+done
+
+if $compile_only; then
+  # Strip glibc -isystem pairs from NIX_CFLAGS and pass via -I instead
+  OTHER_ISYS=""
+  prev=""
+  for flag in $NIX_CFLAGS_COMPILE; do
+    if [[ "$prev" == "-isystem" && "$flag" == *"glibc"* ]]; then
+      prev=""; continue
+    fi
+    if [[ "$flag" == "-isystem" ]]; then
+      prev="$flag"; OTHER_ISYS="$OTHER_ISYS $flag"
+    elif [[ "$prev" == "-isystem" ]]; then
+      OTHER_ISYS="$OTHER_ISYS $flag"; prev=""
+    else
+      prev=""
+    fi
+  done
+  exec "$RAW_GXX" -I"$GLIBC" $OTHER_ISYS "$@"
+else
+  exec "$NIX_WRAP" "$@"
+fi

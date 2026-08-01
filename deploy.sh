@@ -27,7 +27,7 @@
 # Example:
 #   sudo bash deploy.sh \
 #     --domain beef.example.com \
-#     --wallet 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU \
+#     --wallet BedpPynJKjmHA7ZDkvbReYEKzTkb9WxLm3bncy5Hs6nw \
 #     --coin SOL
 # =============================================================================
 
