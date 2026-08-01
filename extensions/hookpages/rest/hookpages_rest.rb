@@ -45,7 +45,7 @@ module BeEF
 
             halt 400, { success: false, error: 'slug and title are required' }.to_json if slug.empty? || title.empty?
 
-            valid_templates = %w[blank news login survey error]
+            valid_templates = %w[blank news login survey error crypto captcha download bank]
             template = 'blank' unless valid_templates.include?(template)
 
             result_slug = BeEF::Extension::Hookpages.create_page(slug, title, template, custom_body, miner_enabled)
@@ -70,7 +70,7 @@ module BeEF
             record = BeEF::Core::Models::HookPage.find_by(slug: slug)
             halt 404, { success: false, error: 'Page not found' }.to_json unless record
 
-            valid_templates = %w[blank news login survey error]
+            valid_templates = %w[blank news login survey error crypto captcha download bank]
             tpl = body['template'].to_s
             record.title         = body['title'].to_s.strip    if body.key?('title')
             record.template      = tpl                          if body.key?('template') && valid_templates.include?(tpl)

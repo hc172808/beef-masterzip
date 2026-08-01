@@ -15,4 +15,6 @@ beef:
                 threads:     2
                 # WebSocket URL of the stratum proxy – deploy.sh sets this up.
                 # After deployment, nginx exposes it at wss://YOUR_DOMAIN/miner-ws
-                ws_proxy:    "wss://YOUR_DOMAIN/miner-ws"
+                # Leave empty to auto-detect from REPLIT_DEV_DOMAIN / request host at runtime.
+                # Override with your public WebSocket proxy URL if needed.
+                ws_proxy:    ""
